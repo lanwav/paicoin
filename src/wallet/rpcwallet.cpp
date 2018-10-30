@@ -2019,13 +2019,13 @@ UniValue gettransaction(const JSONRPCRequest& request)
 
 UniValue abandontransaction(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
+        throw std::runtime_error{
             "abandontransaction \"txid\"\n"
             "\nMark in-wallet transaction <txid> as abandoned\n"
             "This will mark this transaction and all its in-wallet descendants as abandoned which will allow\n"
@@ -2038,7 +2038,7 @@ UniValue abandontransaction(const JSONRPCRequest& request)
             "\nExamples:\n"
             + HelpExampleCli("abandontransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
             + HelpExampleRpc("abandontransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
-        );
+        };
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2056,16 +2056,15 @@ UniValue abandontransaction(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-
 UniValue backupwallet(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
+        throw std::runtime_error{
             "backupwallet \"destination\"\n"
             "\nSafely copies current wallet file to destination, which can be a directory or a path with filename.\n"
             "\nArguments:\n"
@@ -2073,28 +2072,26 @@ UniValue backupwallet(const JSONRPCRequest& request)
             "\nExamples:\n"
             + HelpExampleCli("backupwallet", "\"backup.dat\"")
             + HelpExampleRpc("backupwallet", "\"backup.dat\"")
-        );
+        };
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    std::string strDest = request.params[0].get_str();
-    if (!pwallet->BackupWallet(strDest)) {
+    if (!pwallet->BackupWallet(request.params[0].get_str())) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: Wallet backup failed!");
     }
 
     return NullUniValue;
 }
 
-
 UniValue keypoolrefill(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() > 1)
-        throw std::runtime_error(
+        throw std::runtime_error{
             "keypoolrefill ( newsize )\n"
             "\nFills the keypool."
             + HelpRequiringPassphrase(pwallet) + "\n"
@@ -2103,16 +2100,16 @@ UniValue keypoolrefill(const JSONRPCRequest& request)
             "\nExamples:\n"
             + HelpExampleCli("keypoolrefill", "")
             + HelpExampleRpc("keypoolrefill", "")
-        );
+        };
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
     // 0 is interpreted by TopUpKeyPool() as the default keypool size given by -keypool
-    unsigned int kpSize = 0;
+    unsigned int kpSize{0};
     if (!request.params[0].isNull()) {
         if (request.params[0].get_int() < 0)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, expected valid size.");
-        kpSize = (unsigned int)request.params[0].get_int();
+        kpSize = request.params[0].get_int();
     }
 
     EnsureWalletIsUnlocked(pwallet);
@@ -2125,7 +2122,6 @@ UniValue keypoolrefill(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-
 static void LockWallet(CWallet* pWallet)
 {
     LOCK(pWallet->cs_wallet);
@@ -2135,13 +2131,13 @@ static void LockWallet(CWallet* pWallet)
 
 UniValue walletpassphrase(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (pwallet->IsCrypted() && (request.fHelp || request.params.size() != 2)) {
-        throw std::runtime_error(
+        throw std::runtime_error{
             "walletpassphrase \"passphrase\" timeout\n"
             "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
             "This is needed prior to performing transactions related to private keys such as sending paicoins\n"
@@ -2158,7 +2154,7 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
             + HelpExampleCli("walletlock", "") +
             "\nAs json rpc call\n"
             + HelpExampleRpc("walletpassphrase", "\"my pass phrase\", 60")
-        );
+        };
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2183,29 +2179,28 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
         }
     }
     else
-        throw std::runtime_error(
+        throw std::runtime_error{
             "walletpassphrase <passphrase> <timeout>\n"
-            "Stores the wallet decryption key in memory for <timeout> seconds.");
+            "Stores the wallet decryption key in memory for <timeout> seconds."};
 
     pwallet->TopUpKeyPool();
 
-    int64_t nSleepTime = request.params[1].get_int64();
+    const auto nSleepTime = request.params[1].get_int64();
     pwallet->nRelockTime = GetTime() + nSleepTime;
     RPCRunLater(strprintf("lockwallet(%s)", pwallet->GetName()), boost::bind(LockWallet, pwallet), nSleepTime);
 
     return NullUniValue;
 }
 
-
 UniValue walletpassphrasechange(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (pwallet->IsCrypted() && (request.fHelp || request.params.size() != 2)) {
-        throw std::runtime_error(
+        throw std::runtime_error{
             "walletpassphrasechange \"oldpassphrase\" \"newpassphrase\"\n"
             "\nChanges the wallet passphrase from 'oldpassphrase' to 'newpassphrase'.\n"
             "\nArguments:\n"
@@ -2214,7 +2209,7 @@ UniValue walletpassphrasechange(const JSONRPCRequest& request)
             "\nExamples:\n"
             + HelpExampleCli("walletpassphrasechange", "\"old one\" \"new one\"")
             + HelpExampleRpc("walletpassphrasechange", "\"old one\", \"new one\"")
-        );
+        };
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2247,16 +2242,15 @@ UniValue walletpassphrasechange(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-
 UniValue walletlock(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (pwallet->IsCrypted() && (request.fHelp || request.params.size() != 0)) {
-        throw std::runtime_error(
+        throw std::runtime_error{
             "walletlock\n"
             "\nRemoves the wallet encryption key from memory, locking the wallet.\n"
             "After calling this method, you will need to call walletpassphrase again\n"
@@ -2270,7 +2264,7 @@ UniValue walletlock(const JSONRPCRequest& request)
             + HelpExampleCli("walletlock", "") +
             "\nAs json rpc call\n"
             + HelpExampleRpc("walletlock", "")
-        );
+        };
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2290,13 +2284,13 @@ UniValue walletlock(const JSONRPCRequest& request)
 
 UniValue encryptwallet(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (!pwallet->IsCrypted() && (request.fHelp || request.params.size() != 1)) {
-        throw std::runtime_error(
+        throw std::runtime_error{
             "encryptwallet \"passphrase\"\n"
             "\nEncrypts the wallet with 'passphrase'. This is for first time encryption.\n"
             "After this, any calls that interact with private keys such as sending or signing \n"
@@ -2317,7 +2311,7 @@ UniValue encryptwallet(const JSONRPCRequest& request)
             + HelpExampleCli("walletlock", "") +
             "\nAs a json rpc call\n"
             + HelpExampleRpc("encryptwallet", "\"my pass phrase\"")
-        );
+        };
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2352,13 +2346,13 @@ UniValue encryptwallet(const JSONRPCRequest& request)
 
 UniValue lockunspent(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
-        throw std::runtime_error(
+        throw std::runtime_error{
             "lockunspent unlock ([{\"txid\":\"txid\",\"vout\":n},...])\n"
             "\nUpdates list of temporarily unspendable outputs.\n"
             "Temporarily lock (unlock=false) or unlock (unlock=true) specified transaction outputs.\n"
@@ -2392,13 +2386,13 @@ UniValue lockunspent(const JSONRPCRequest& request)
             + HelpExampleCli("lockunspent", "true \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
             "\nAs a json rpc call\n"
             + HelpExampleRpc("lockunspent", "false, \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"")
-        );
+        };
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
     RPCTypeCheckArgument(request.params[0], UniValue::VBOOL);
 
-    bool fUnlock = request.params[0].get_bool();
+    const auto fUnlock = request.params[0].get_bool();
 
     if (request.params[1].isNull()) {
         if (fUnlock)
@@ -2408,12 +2402,12 @@ UniValue lockunspent(const JSONRPCRequest& request)
 
     RPCTypeCheckArgument(request.params[1], UniValue::VARR);
 
-    UniValue outputs = request.params[1].get_array();
-    for (unsigned int idx = 0; idx < outputs.size(); idx++) {
-        const UniValue& output = outputs[idx];
+    const auto& outputs = request.params[1].get_array();
+    for (size_t idx{0}; idx < outputs.size(); ++idx) {
+        const auto& output = outputs[idx];
         if (!output.isObject())
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, expected object");
-        const UniValue& o = output.get_obj();
+        const auto& o = output.get_obj();
 
         RPCTypeCheckObj(o,
             {
@@ -2421,15 +2415,15 @@ UniValue lockunspent(const JSONRPCRequest& request)
                 {"vout", UniValueType(UniValue::VNUM)},
             });
 
-        std::string txid = find_value(o, "txid").get_str();
+        const auto& txid = find_value(o, "txid").get_str();
         if (!IsHex(txid))
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, expected hex txid");
 
-        int nOutput = find_value(o, "vout").get_int();
+        const auto nOutput = find_value(o, "vout").get_int();
         if (nOutput < 0)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout must be positive");
 
-        COutPoint outpt(uint256S(txid), nOutput);
+        COutPoint outpt{uint256S(txid), static_cast<uint32_t>(nOutput)};
 
         if (fUnlock)
             pwallet->UnlockCoin(outpt);
@@ -2442,13 +2436,13 @@ UniValue lockunspent(const JSONRPCRequest& request)
 
 UniValue listlockunspent(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() > 0)
-        throw std::runtime_error(
+        throw std::runtime_error{
             "listlockunspent\n"
             "\nReturns list of temporarily unspendable outputs.\n"
             "See the lockunspent call to lock and unlock transactions for spending.\n"
@@ -2471,7 +2465,7 @@ UniValue listlockunspent(const JSONRPCRequest& request)
             + HelpExampleCli("lockunspent", "true \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
             "\nAs a json rpc call\n"
             + HelpExampleRpc("listlockunspent", "")
-        );
+        };
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2479,13 +2473,13 @@ UniValue listlockunspent(const JSONRPCRequest& request)
     std::vector<COutPoint> vOutpts;
     pwallet->ListLockedCoins(vOutpts);
 
-    UniValue ret(UniValue::VARR);
+    UniValue ret{UniValue::VARR};
 
-    for (COutPoint &outpt : vOutpts) {
-        UniValue o(UniValue::VOBJ);
+    for (const auto &outpt : vOutpts) {
+        UniValue o{UniValue::VOBJ};
 
         o.push_back(Pair("txid", outpt.hash.GetHex()));
-        o.push_back(Pair("vout", (int)outpt.n));
+        o.push_back(Pair("vout", static_cast<int>(outpt.n)));
         ret.push_back(o);
     }
 
@@ -2494,13 +2488,13 @@ UniValue listlockunspent(const JSONRPCRequest& request)
 
 UniValue settxfee(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 1)
-        throw std::runtime_error(
+        throw std::runtime_error{
             "settxfee amount\n"
             "\nSet the transaction fee per kB. Overwrites the paytxfee parameter.\n"
             "\nArguments:\n"
@@ -2510,14 +2504,11 @@ UniValue settxfee(const JSONRPCRequest& request)
             "\nExamples:\n"
             + HelpExampleCli("settxfee", "0.00001")
             + HelpExampleRpc("settxfee", "0.00001")
-        );
+        };
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    // Amount
-    CAmount nAmount = AmountFromValue(request.params[0]);
-
-    payTxFee = CFeeRate(nAmount, 1000);
+    payTxFee = CFeeRate(AmountFromValue(request.params[0]), 1000);
     return true;
 }
 
