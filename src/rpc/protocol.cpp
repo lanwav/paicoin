@@ -5,6 +5,7 @@
 
 #include "rpc/protocol.h"
 
+#include "fs.h"
 #include "random.h"
 #include "tinyformat.h"
 #include "util.h"
@@ -12,8 +13,8 @@
 #include "utiltime.h"
 #include "version.h"
 
-#include <stdint.h>
 #include <fstream>
+#include <array>
 
 /**
  * JSON-RPC protocol.  PAIcoin speaks version 1.0 for maximum compatibility,
@@ -47,7 +48,7 @@ UniValue JSONRPCReplyObj(const UniValue& result, const UniValue& error, const Un
 
 std::string JSONRPCReply(const UniValue& result, const UniValue& error, const UniValue& id)
 {
-    UniValue reply = JSONRPCReplyObj(result, error, id);
+    const UniValue reply = JSONRPCReplyObj(result, error, id);
     return reply.write() + "\n";
 }
 
@@ -80,10 +81,9 @@ static fs::path GetAuthCookieFile(bool temp=false)
 
 bool GenerateAuthCookie(std::string *cookie_out)
 {
-    const size_t COOKIE_SIZE = 32;
-    unsigned char rand_pwd[COOKIE_SIZE];
-    GetRandBytes(rand_pwd, COOKIE_SIZE);
-    std::string cookie = COOKIEAUTH_USER + ":" + HexStr(rand_pwd, rand_pwd+COOKIE_SIZE);
+    std::array<unsigned char, 32> rand_pwd;
+    GetRandBytes(rand_pwd.data(), rand_pwd.size());
+    const auto cookie = COOKIEAUTH_USER + ":" + HexStr(std::begin(rand_pwd), std::end(rand_pwd));
 
     /** the umask determines what permissions are used to create this file -
      * these are set to 077 in init.cpp unless overridden with -sysperms.
@@ -113,11 +113,12 @@ bool GenerateAuthCookie(std::string *cookie_out)
 bool GetAuthCookie(std::string *cookie_out)
 {
     std::ifstream file;
-    std::string cookie;
     fs::path filepath = GetAuthCookieFile();
     file.open(filepath.string().c_str());
     if (!file.is_open())
         return false;
+
+    std::string cookie;
     std::getline(file, cookie);
     file.close();
 
