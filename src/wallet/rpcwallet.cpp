@@ -2423,7 +2423,7 @@ UniValue lockunspent(const JSONRPCRequest& request)
         if (nOutput < 0)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout must be positive");
 
-        COutPoint outpt{uint256S(txid), static_cast<uint32_t>(nOutput)};
+        const COutPoint outpt{uint256S(txid), static_cast<uint32_t>(nOutput)};
 
         if (fUnlock)
             pwallet->UnlockCoin(outpt);
@@ -2514,13 +2514,13 @@ UniValue settxfee(const JSONRPCRequest& request)
 
 UniValue getwalletinfo(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 0)
-        throw std::runtime_error(
+    if (request.fHelp || !request.params.empty())
+        throw std::runtime_error{
             "getwalletinfo\n"
             "Returns an object containing various wallet state info.\n"
             "\nResult:\n"
@@ -2541,14 +2541,14 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
             "\nExamples:\n"
             + HelpExampleCli("getwalletinfo", "")
             + HelpExampleRpc("getwalletinfo", "")
-        );
+        };
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    UniValue obj(UniValue::VOBJ);
+    UniValue obj{UniValue::VOBJ};
 
-    size_t kpExternalSize = pwallet->KeypoolCountExternalKeys();
+    const auto kpExternalSize = pwallet->KeypoolCountExternalKeys();
     obj.push_back(Pair("walletname", pwallet->GetName()));
     obj.push_back(Pair("walletversion", pwallet->GetVersion()));
     obj.push_back(Pair("balance",       ValueFromAmount(pwallet->GetBalance())));
@@ -2556,10 +2556,10 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     obj.push_back(Pair("immature_balance",    ValueFromAmount(pwallet->GetImmatureBalance())));
     obj.push_back(Pair("txcount",       (int)pwallet->mapWallet.size()));
     obj.push_back(Pair("keypoololdest", pwallet->GetOldestKeyPoolTime()));
-    obj.push_back(Pair("keypoolsize", (int64_t)kpExternalSize));
-    CKeyID masterKeyID = pwallet->GetHDChain().masterKeyID;
+    obj.push_back(Pair("keypoolsize", static_cast<int64_t>(kpExternalSize)));
+    const CKeyID masterKeyID{pwallet->GetHDChain().masterKeyID};
     if (!masterKeyID.IsNull() && pwallet->CanSupportFeature(FEATURE_HD_SPLIT)) {
-        obj.push_back(Pair("keypoolsize_hd_internal",   (int64_t)(pwallet->GetKeyPoolSize() - kpExternalSize)));
+        obj.push_back(Pair("keypoolsize_hd_internal",   static_cast<int64_t>((pwallet->GetKeyPoolSize() - kpExternalSize))));
     }
     if (pwallet->IsCrypted()) {
         obj.push_back(Pair("unlocked_until", pwallet->nRelockTime));
@@ -2572,8 +2572,8 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
 
 UniValue listwallets(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() != 0)
-        throw std::runtime_error(
+    if (request.fHelp || !request.params.empty())
+        throw std::runtime_error{
             "listwallets\n"
             "Returns a list of currently loaded wallets.\n"
             "For full information on the wallet, use \"getwalletinfo\"\n"
@@ -2585,11 +2585,11 @@ UniValue listwallets(const JSONRPCRequest& request)
             "\nExamples:\n"
             + HelpExampleCli("listwallets", "")
             + HelpExampleRpc("listwallets", "")
-        );
+        };
 
-    UniValue obj(UniValue::VARR);
+    UniValue obj{UniValue::VARR};
 
-    for (CWalletRef pwallet : vpwallets) {
+    for (auto pwallet : vpwallets) {
 
         if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
             return NullUniValue;
@@ -2605,12 +2605,12 @@ UniValue listwallets(const JSONRPCRequest& request)
 
 UniValue resendwallettransactions(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 0)
+    if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
             "resendwallettransactions\n"
             "Immediately re-broadcast unconfirmed wallet transactions to all peers.\n"
@@ -2629,9 +2629,9 @@ UniValue resendwallettransactions(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: Wallet transaction broadcasting is disabled with -walletbroadcast");
     }
 
-    std::vector<uint256> txids = pwallet->ResendWalletTransactionsBefore(GetTime(), g_connman.get());
-    UniValue result(UniValue::VARR);
-    for (const uint256& txid : txids)
+    const auto txids = pwallet->ResendWalletTransactionsBefore(GetTime(), g_connman.get());
+    UniValue result{UniValue::VARR};
+    for (const auto& txid : txids)
     {
         result.push_back(txid.ToString());
     }
@@ -2640,13 +2640,13 @@ UniValue resendwallettransactions(const JSONRPCRequest& request)
 
 UniValue listunspent(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() > 5)
-        throw std::runtime_error(
+        throw std::runtime_error{
             "listunspent ( minconf maxconf  [\"addresses\",...] [include_unsafe] [query_options])\n"
             "\nReturns array of unspent transaction outputs\n"
             "with between minconf and maxconf (inclusive) confirmations.\n"
@@ -2694,17 +2694,17 @@ UniValue listunspent(const JSONRPCRequest& request)
             + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
             + HelpExampleCli("listunspent", "6 9999999 '[]' true '{ \"minimumAmount\": 0.005 }'")
             + HelpExampleRpc("listunspent", "6, 9999999, [] , true, { \"minimumAmount\": 0.005 } ")
-        );
+        };
 
     ObserveSafeMode();
 
-    int nMinDepth = 1;
+    int nMinDepth{1};
     if (!request.params[0].isNull()) {
         RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
         nMinDepth = request.params[0].get_int();
     }
 
-    int nMaxDepth = 9999999;
+    int nMaxDepth{9999999};
     if (!request.params[1].isNull()) {
         RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
         nMaxDepth = request.params[1].get_int();
@@ -2713,10 +2713,10 @@ UniValue listunspent(const JSONRPCRequest& request)
     std::set<CTxDestination> destinations;
     if (!request.params[2].isNull()) {
         RPCTypeCheckArgument(request.params[2], UniValue::VARR);
-        UniValue inputs = request.params[2].get_array();
-        for (unsigned int idx = 0; idx < inputs.size(); idx++) {
-            const UniValue& input = inputs[idx];
-            CTxDestination dest = DecodeDestination(input.get_str());
+        const auto& inputs = request.params[2].get_array();
+        for (std::size_t idx{0}; idx < inputs.size(); ++idx) {
+            const auto& input = inputs[idx];
+            const auto dest = DecodeDestination(input.get_str());
             if (!IsValidDestination(dest)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid PAIcoin address: ") + input.get_str());
             }
@@ -2726,19 +2726,19 @@ UniValue listunspent(const JSONRPCRequest& request)
         }
     }
 
-    bool include_unsafe = true;
+    auto include_unsafe = true;
     if (!request.params[3].isNull()) {
         RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
         include_unsafe = request.params[3].get_bool();
     }
 
-    CAmount nMinimumAmount = 0;
-    CAmount nMaximumAmount = MAX_MONEY;
-    CAmount nMinimumSumAmount = MAX_MONEY;
-    uint64_t nMaximumCount = 0;
+    CAmount nMinimumAmount{0};
+    CAmount nMaximumAmount{MAX_MONEY};
+    CAmount nMinimumSumAmount{MAX_MONEY};
+    uint64_t nMaximumCount{0};
 
     if (!request.params[4].isNull()) {
-        const UniValue& options = request.params[4].get_obj();
+        const auto& options = request.params[4].get_obj();
 
         if (options.exists("minimumAmount"))
             nMinimumAmount = AmountFromValue(options["minimumAmount"]);
@@ -2753,21 +2753,21 @@ UniValue listunspent(const JSONRPCRequest& request)
             nMaximumCount = options["maximumCount"].get_int64();
     }
 
-    UniValue results(UniValue::VARR);
+    UniValue results{UniValue::VARR};
     std::vector<COutput> vecOutputs;
     assert(pwallet != nullptr);
     LOCK2(cs_main, pwallet->cs_wallet);
 
     pwallet->AvailableCoins(vecOutputs, !include_unsafe, nullptr, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount, nMinDepth, nMaxDepth);
-    for (const COutput& out : vecOutputs) {
+    for (const auto& out : vecOutputs) {
         CTxDestination address;
-        const CScript& scriptPubKey = out.tx->tx->vout[out.i].scriptPubKey;
-        bool fValidAddress = ExtractDestination(scriptPubKey, address);
+        const auto& scriptPubKey = out.tx->tx->vout[out.i].scriptPubKey;
+        const auto fValidAddress = ExtractDestination(scriptPubKey, address);
 
         if (destinations.size() && (!fValidAddress || !destinations.count(address)))
             continue;
 
-        UniValue entry(UniValue::VOBJ);
+        UniValue entry{UniValue::VOBJ};
         entry.push_back(Pair("txid", out.tx->GetHash().GetHex()));
         entry.push_back(Pair("vout", out.i));
 
@@ -2779,7 +2779,7 @@ UniValue listunspent(const JSONRPCRequest& request)
             }
 
             if (scriptPubKey.IsPayToScriptHash()) {
-                const CScriptID& hash = boost::get<CScriptID>(address);
+                const auto& hash = boost::get<CScriptID>(address);
                 CScript redeemScript;
                 if (pwallet->GetCScript(hash, redeemScript)) {
                     entry.push_back(Pair("redeemScript", HexStr(redeemScript.begin(), redeemScript.end())));
@@ -2801,13 +2801,13 @@ UniValue listunspent(const JSONRPCRequest& request)
 
 UniValue fundrawtransaction(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
-        throw std::runtime_error(
+        throw std::runtime_error{
                             "fundrawtransaction \"hexstring\" ( options )\n"
                             "\nAdd inputs to a transaction until it has enough in value to meet its out value.\n"
                             "This will not modify existing inputs, and will add at most one change output to the outputs.\n"
@@ -2858,14 +2858,14 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
                             + HelpExampleCli("signrawtransaction", "\"fundedtransactionhex\"") +
                             "\nSend the transaction\n"
                             + HelpExampleCli("sendrawtransaction", "\"signedtransactionhex\"")
-                            );
+        };
 
     ObserveSafeMode();
     RPCTypeCheck(request.params, {UniValue::VSTR});
 
     CCoinControl coinControl;
-    int changePosition = -1;
-    bool lockUnspents = false;
+    int changePosition{-1};
+    auto lockUnspents = false;
     UniValue subtractFeeFromOutputs;
     std::set<int> setSubtractFeeFromOutputs;
 
@@ -2877,7 +2877,7 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
       else {
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
 
-        UniValue options = request.params[1];
+        const auto& options = request.params[1];
 
         RPCTypeCheckObj(options,
             {
@@ -2895,7 +2895,7 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
             true, true);
 
         if (options.exists("changeAddress")) {
-            CTxDestination dest = DecodeDestination(options["changeAddress"].get_str());
+            const auto dest = DecodeDestination(options["changeAddress"].get_str());
 
             if (!IsValidDestination(dest)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "changeAddress must be a valid paicoin address");
@@ -2950,11 +2950,11 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
     if (tx.vout.size() == 0)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "TX must have at least one output");
 
-    if (changePosition != -1 && (changePosition < 0 || (unsigned int)changePosition > tx.vout.size()))
+    if (changePosition != -1 && (changePosition < 0 || static_cast<unsigned int>(changePosition) > tx.vout.size()))
         throw JSONRPCError(RPC_INVALID_PARAMETER, "changePosition out of bounds");
 
-    for (unsigned int idx = 0; idx < subtractFeeFromOutputs.size(); idx++) {
-        int pos = subtractFeeFromOutputs[idx].get_int();
+    for (size_t idx{0}; idx < subtractFeeFromOutputs.size(); ++idx) {
+        const int pos{subtractFeeFromOutputs[idx].get_int()};
         if (setSubtractFeeFromOutputs.count(pos))
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, duplicated position: %d", pos));
         if (pos < 0)
@@ -2971,7 +2971,7 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, strFailReason);
     }
 
-    UniValue result(UniValue::VOBJ);
+    UniValue result{UniValue::VOBJ};
     result.push_back(Pair("hex", EncodeHexTx(tx)));
     result.push_back(Pair("changepos", changePosition));
     result.push_back(Pair("fee", ValueFromAmount(nFeeOut)));
@@ -2981,13 +2981,13 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
 
 UniValue bumpfee(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
 
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
-        throw std::runtime_error(
+        throw std::runtime_error{
             "bumpfee \"txid\" ( options ) \n"
             "\nBumps the fee of an opt-in-RBF transaction T, replacing it with a new transaction B.\n"
             "An opt-in RBF transaction with the given txid must be in the wallet.\n"
@@ -3030,7 +3030,8 @@ UniValue bumpfee(const JSONRPCRequest& request)
             "}\n"
             "\nExamples:\n"
             "\nBump the fee, get the new transaction\'s txid\n" +
-            HelpExampleCli("bumpfee", "<txid>"));
+            HelpExampleCli("bumpfee", "<txid>")
+        };
     }
 
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
@@ -3038,17 +3039,17 @@ UniValue bumpfee(const JSONRPCRequest& request)
     hash.SetHex(request.params[0].get_str());
 
     // optional parameters
-    CAmount totalFee = 0;
+    CAmount totalFee{0};
     CCoinControl coin_control;
     coin_control.signalRbf = true;
     if (!request.params[1].isNull()) {
-        UniValue options = request.params[1];
+        const auto& options = request.params[1];
         RPCTypeCheckObj(options,
             {
-                {"confTarget", UniValueType(UniValue::VNUM)},
-                {"totalFee", UniValueType(UniValue::VNUM)},
-                {"replaceable", UniValueType(UniValue::VBOOL)},
-                {"estimate_mode", UniValueType(UniValue::VSTR)},
+                {"confTarget", UniValueType{UniValue::VNUM}},
+                {"totalFee", UniValueType{UniValue::VNUM}},
+                {"replaceable", UniValueType{UniValue::VBOOL}},
+                {"estimate_mode", UniValueType{UniValue::VSTR}},
             },
             true, true);
 
@@ -3076,7 +3077,7 @@ UniValue bumpfee(const JSONRPCRequest& request)
     LOCK2(cs_main, pwallet->cs_wallet);
     EnsureWalletIsUnlocked(pwallet);
 
-    CFeeBumper feeBump(pwallet, hash, coin_control, totalFee);
+    CFeeBumper feeBump{pwallet, hash, coin_control, totalFee};
     BumpFeeResult res = feeBump.getResult();
     if (res != BumpFeeResult::OK)
     {
@@ -3107,12 +3108,12 @@ UniValue bumpfee(const JSONRPCRequest& request)
     if(!feeBump.commit(pwallet)) {
         throw JSONRPCError(RPC_WALLET_ERROR, feeBump.getErrors()[0]);
     }
-    UniValue result(UniValue::VOBJ);
+    UniValue result{UniValue::VOBJ};
     result.push_back(Pair("txid", feeBump.getBumpedTxId().GetHex()));
     result.push_back(Pair("origfee", ValueFromAmount(feeBump.getOldFee())));
     result.push_back(Pair("fee", ValueFromAmount(feeBump.getNewFee())));
-    UniValue errors(UniValue::VARR);
-    for (const std::string& err: feeBump.getErrors())
+    UniValue errors{UniValue::VARR};
+    for (const auto& err : feeBump.getErrors())
         errors.push_back(err);
     result.push_back(Pair("errors", errors));
 
@@ -3121,14 +3122,14 @@ UniValue bumpfee(const JSONRPCRequest& request)
 
 UniValue generate(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    const auto pwallet = GetWalletForJSONRPCRequest(request);
 
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
-        throw std::runtime_error(
+        throw std::runtime_error{
             "generate nblocks ( maxtries )\n"
             "\nMine up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
             "\nArguments:\n"
@@ -3139,11 +3140,11 @@ UniValue generate(const JSONRPCRequest& request)
             "\nExamples:\n"
             "\nGenerate 11 blocks\n"
             + HelpExampleCli("generate", "11")
-        );
+        };
     }
 
-    int num_generate = request.params[0].get_int();
-    uint64_t max_tries = 1000000;
+    const auto num_generate = request.params[0].get_int();
+    uint64_t max_tries{1000000};
     if (!request.params[1].isNull()) {
         max_tries = request.params[1].get_int();
     }
