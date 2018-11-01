@@ -3078,7 +3078,7 @@ UniValue bumpfee(const JSONRPCRequest& request)
     EnsureWalletIsUnlocked(pwallet);
 
     CFeeBumper feeBump{pwallet, hash, coin_control, totalFee};
-    BumpFeeResult res = feeBump.getResult();
+    const auto res = feeBump.getResult();
     if (res != BumpFeeResult::OK)
     {
         switch(res) {
