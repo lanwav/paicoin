@@ -1916,7 +1916,7 @@ UniValue listsinceblock(const JSONRPCRequest& request)
     }
 
     const auto pblockLast = chainActive[chainActive.Height() + 1 - target_confirms];
-    const uint256 lastblock{pblockLast ? pblockLast->GetBlockHash() : uint256()};
+    const uint256 lastblock{pblockLast ? pblockLast->GetBlockHash() : uint256{}};
 
     UniValue ret{UniValue::VOBJ};
     ret.push_back(Pair("transactions", transactions));
@@ -1998,8 +1998,8 @@ UniValue gettransaction(const JSONRPCRequest& request)
 
     const auto nCredit = wtx.GetCredit(filter);
     const auto nDebit = wtx.GetDebit(filter);
-    const CAmount nNet = nCredit - nDebit;
-    const CAmount nFee = (wtx.IsFromMe(filter) ? wtx.tx->GetValueOut() - nDebit : 0);
+    const CAmount nNet{nCredit - nDebit};
+    const CAmount nFee{wtx.IsFromMe(filter) ? wtx.tx->GetValueOut() - nDebit : 0};
 
     entry.push_back(Pair("amount", ValueFromAmount(nNet - nFee)));
     if (wtx.IsFromMe(filter))
