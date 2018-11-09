@@ -81,7 +81,7 @@ public:
 UniValue validateaddress(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
+        throw std::runtime_error{
             "validateaddress \"address\"\n"
             "\nReturn information about the given paicoin address.\n"
             "\nArguments:\n"
@@ -112,7 +112,7 @@ UniValue validateaddress(const JSONRPCRequest& request)
             "\nExamples:\n"
             + HelpExampleCli("validateaddress", "\"1PSSGeFHDnKNxiEyFrD1wcEaHr9hrQDDWc\"")
             + HelpExampleRpc("validateaddress", "\"1PSSGeFHDnKNxiEyFrD1wcEaHr9hrQDDWc\"")
-        );
+        };
 
 #ifdef ENABLE_WALLET
     const auto pwallet = GetWalletForJSONRPCRequest(request);
@@ -273,7 +273,7 @@ UniValue createmultisig(const JSONRPCRequest& request)
 
     UniValue result{UniValue::VOBJ};
     result.push_back(Pair("address", EncodeDestination(innerID)));
-    result.push_back(Pair("redeemScript", HexStr(inner.begin(), inner.end())));
+    result.push_back(Pair("redeemScript", HexStr(inner)));
 
     return result;
 }

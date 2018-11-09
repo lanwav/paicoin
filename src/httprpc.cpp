@@ -49,7 +49,7 @@ public:
     explicit HTTPRPCTimerInterface(struct event_base* _base) : base{_base}
     {
     }
-    const char* Name() override
+    const char* Name() const override
     {
         return "HTTP";
     }

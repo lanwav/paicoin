@@ -27,7 +27,7 @@
 
 UniValue JSONRPCRequestObj(const std::string& strMethod, const UniValue& params, const UniValue& id)
 {
-    UniValue request(UniValue::VOBJ);
+    UniValue request{UniValue::VOBJ};
     request.push_back(Pair("method", strMethod));
     request.push_back(Pair("params", params));
     request.push_back(Pair("id", id));
@@ -36,7 +36,7 @@ UniValue JSONRPCRequestObj(const std::string& strMethod, const UniValue& params,
 
 UniValue JSONRPCReplyObj(const UniValue& result, const UniValue& error, const UniValue& id)
 {
-    UniValue reply(UniValue::VOBJ);
+    UniValue reply{UniValue::VOBJ};
     if (!error.isNull())
         reply.push_back(Pair("result", NullUniValue));
     else
@@ -48,13 +48,13 @@ UniValue JSONRPCReplyObj(const UniValue& result, const UniValue& error, const Un
 
 std::string JSONRPCReply(const UniValue& result, const UniValue& error, const UniValue& id)
 {
-    const UniValue reply = JSONRPCReplyObj(result, error, id);
+    const auto reply = JSONRPCReplyObj(result, error, id);
     return reply.write() + "\n";
 }
 
 UniValue JSONRPCError(int code, const std::string& message)
 {
-    UniValue error(UniValue::VOBJ);
+    UniValue error{UniValue::VOBJ};
     error.push_back(Pair("code", code));
     error.push_back(Pair("message", message));
     return error;
@@ -70,11 +70,11 @@ static const std::string COOKIEAUTH_FILE = ".cookie";
 /** Get name of RPC authentication cookie file */
 static fs::path GetAuthCookieFile(bool temp=false)
 {
-    std::string arg = gArgs.GetArg("-rpccookiefile", COOKIEAUTH_FILE);
+    auto arg = gArgs.GetArg("-rpccookiefile", COOKIEAUTH_FILE);
     if (temp) {
         arg += ".tmp";
     }
-    fs::path path(arg);
+    fs::path path{arg};
     if (!path.is_complete()) path = GetDataDir() / path;
     return path;
 }
@@ -83,13 +83,13 @@ bool GenerateAuthCookie(std::string *cookie_out)
 {
     std::array<unsigned char, 32> rand_pwd;
     GetRandBytes(rand_pwd.data(), rand_pwd.size());
-    const auto cookie = COOKIEAUTH_USER + ":" + HexStr(std::begin(rand_pwd), std::end(rand_pwd));
+    const auto cookie = COOKIEAUTH_USER + ":" + HexStr(rand_pwd);
 
     /** the umask determines what permissions are used to create this file -
      * these are set to 077 in init.cpp unless overridden with -sysperms.
      */
     std::ofstream file;
-    fs::path filepath_tmp = GetAuthCookieFile(true);
+    const auto filepath_tmp = GetAuthCookieFile(true);
     file.open(filepath_tmp.string().c_str());
     if (!file.is_open()) {
         LogPrintf("Unable to open cookie authentication file %s for writing\n", filepath_tmp.string());
@@ -98,7 +98,7 @@ bool GenerateAuthCookie(std::string *cookie_out)
     file << cookie;
     file.close();
 
-    fs::path filepath = GetAuthCookieFile(false);
+    const auto filepath = GetAuthCookieFile(false);
     if (!RenameOver(filepath_tmp, filepath)) {
         LogPrintf("Unable to rename cookie authentication file %s to %s\n", filepath_tmp.string(), filepath.string());
         return false;
@@ -112,8 +112,8 @@ bool GenerateAuthCookie(std::string *cookie_out)
 
 bool GetAuthCookie(std::string *cookie_out)
 {
+    const auto filepath = GetAuthCookieFile();
     std::ifstream file;
-    fs::path filepath = GetAuthCookieFile();
     file.open(filepath.string().c_str());
     if (!file.is_open())
         return false;
